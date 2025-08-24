@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 245 245 255;
+  --card: 255 255 255;
+  --text: 30 41 59;
+}
+
+:root.dark {
+  --bg: 2 6 23;
+  --card: 15 23 42;
+  --text: 226 232 240;
+}
+
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  @apply bg-[rgb(var(--bg))] text-[rgb(var(--text))] antialiased;
+}
+
+.container {
+  @apply max-w-2xl mx-auto px-4;
+}
+
+.card {
+  @apply bg-[rgb(var(--card))] rounded-2xl shadow-lg border border-slate-100 dark:border-slate-800;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors;
+}
+.btn-primary {
+  @apply bg-brand-600 text-white hover:bg-brand-700;
+}
+.btn-ghost {
+  @apply hover:bg-slate-100 text-slate-700 dark:text-slate-200 dark:hover:bg-slate-800;
+}
+
+.input {
+  @apply w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 outline-none ring-0 focus:border-brand-400 focus:ring-2 focus:ring-brand-200;
+}
+
+.checkbox {
+  @apply h-5 w-5 rounded border-slate-300 dark:border-slate-600 text-brand-600 focus:ring-brand-400;
+}
