@@ -1,7 +1,7 @@
 'use client'
 
 import { Plus, Trash2, CheckCircle2, Circle, Pencil, X, Check, ArrowUp, ArrowDown, CalendarDays, Flag, ListChecks } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTodoStore } from '@/lib/store'
 import classNames from 'classnames'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -34,15 +34,22 @@ export default function Page() {
   const completedCount = useMemo(() => todos.filter(t => t.completed).length, [todos])
 
   return (
-    <main className="container py-6 md:py-10">
-      <header className="mb-5 md:mb-8">
-        <h1 className="text-2xl md:text-5xl font-extrabold tracking-tight heading-gradient">Todo</h1>
-        <p className="text-slate-600/90 dark:text-slate-300/80 mt-1 text-sm md:text-base">Stay organized with a clean, fast, local-first todo app.</p>
+    <main className="w-full max-w-full px-2 py-4 sm:px-4 md:py-6">
+      <header className="mb-4 sm:mb-6">
+        <h1 className="text-3xl font-extrabold tracking-tight heading-gradient sm:text-4xl md:text-5xl">Todo</h1>
+        <p className="mt-1.5 text-sm text-slate-600/90 dark:text-slate-300/80 sm:text-base">
+          Stay organized with a clean, fast, local-first todo app.
+        </p>
       </header>
 
-      <motion.section className="card p-4 md:p-6" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.35 }}>
+      <motion.section 
+        className="card w-full overflow-hidden p-3 sm:p-4 md:p-6" 
+        initial={{ y: 10, opacity: 0 }} 
+        animate={{ y: 0, opacity: 1 }} 
+        transition={{ duration: 0.35 }}
+      >
         <form
-          className="grid grid-cols-1 gap-3"
+          className="space-y-3"
           onSubmit={(e) => {
             e.preventDefault()
             const title = input.trim()
@@ -53,17 +60,21 @@ export default function Page() {
           }}
         >
           {/* Row 1: input + add */}
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2 w-full">
             <input
+              type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Add a task..."
-              className="input flex-1"
+              placeholder="Add a new task..."
+              className="flex-1 min-w-0 px-4 py-3 text-base bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:outline-none"
             />
-            <motion.button whileTap={{ scale: 0.97 }} whileHover={{ scale: 1.02 }} className="btn btn-primary px-5 md:px-6 rounded-xl" type="submit">
-              <Plus className="h-5 w-5" />
-              <span className="hidden sm:inline">Add</span>
-            </motion.button>
+            <button
+              type="submit"
+              className="p-3 text-white transition-colors bg-blue-600 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:scale-95"
+              aria-label="Add task"
+            >
+              <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
           </div>
           {/* Row 2: quick options */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -103,16 +114,31 @@ export default function Page() {
         {/* Filters */}
         <div className="mt-4">
           <div className="inline-flex rounded-xl p-1 bg-white/70 dark:bg-white/5 border border-white/60 dark:border-white/10 backdrop-blur">
-            <FilterButton current={filter} setFilter={setFilter} value="all" label="All" />
-            <FilterButton current={filter} setFilter={setFilter} value="active" label="Active" />
-            <FilterButton current={filter} setFilter={setFilter} value="completed" label="Completed" />
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-sm">
+              <div className="flex flex-1 space-x-1 overflow-x-auto pb-1">
+                <FilterButton current={filter} setFilter={setFilter} value="all" label="All" />
+                <FilterButton current={filter} setFilter={setFilter} value="active" label="Active" />
+                <FilterButton current={filter} setFilter={setFilter} value="completed" label="Completed" />
+              </div>
+              <button
+                onClick={clearCompleted}
+                disabled={!completedCount}
+                className={classNames(
+                  'flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl transition-all active:scale-95',
+                  'whitespace-nowrap',
+                  completedCount
+                    ? 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30'
+                    : 'text-slate-400 dark:text-slate-600 cursor-not-allowed'
+                )}
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Clear completed</span>
+                <span className="sm:hidden">Clear</span>
+              </button>
+            </div>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <span className="me-2">{activeCount} remaining • {completedCount} done</span>
-            <button className="btn btn-ghost px-2 py-1" onClick={clearCompleted}>
-              <Trash2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Clear completed</span>
-            </button>
             <button className="btn btn-ghost px-2 py-1" onClick={() => toggleAll(true)}>
               <Check className="h-4 w-4" />
               <span className="hidden sm:inline">Complete all</span>
@@ -181,7 +207,7 @@ export default function Page() {
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                 <PriorityBadge p={t.priority} />
                 {t.dueDate && (
-                  <div className={classNames('inline-flex items-center gap-1 px-2 py-1 rounded-full border', isOverdue(t.dueDate, t.completed) ? 'border-red-300 text-red-600 dark:text-red-300' : 'border-slate-200 dark:border-slate-700 text-slate-500')}>
+                  <div className={classNames('inline-flex items-center gap-1 px-2 py-1 rounded-full border', isOverdue(t.dueDate, t.completed) ? 'border-red-300 text-red-600 dark:text-red-400 dark:border-red-800' : 'border-slate-200 dark:border-slate-700 text-slate-500')}>
                     <CalendarDays className="h-3 w-3" /> {t.dueDate}
                   </div>
                 )}
@@ -221,11 +247,16 @@ function FilterButton({ current, setFilter, value, label }: {
   value: 'all' | 'active' | 'completed'
   label: string
 }) {
-  const active = current === value
   return (
     <button
-      className={classNames('btn', active ? 'btn-primary' : 'btn-ghost')}
       onClick={() => setFilter(value)}
+      className={classNames(
+        'px-3 py-2 rounded-xl transition-all active:scale-95 min-w-[60px] text-center',
+        'text-sm sm:text-base',
+        current === value
+          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 font-medium'
+          : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/50'
+      )}
     >
       {label}
     </button>
@@ -237,24 +268,44 @@ function EditInline({ initial, onCancel, onSave }: {
   onCancel: () => void
   onSave: (val: string) => void
 }) {
-  const [val, setVal] = useState(initial)
+  const [value, setValue] = useState(initial)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [])
+
   return (
-    <form
-      className="flex items-center gap-2 flex-1"
-      onSubmit={(e) => {
-        e.preventDefault()
-        const t = val.trim()
-        if (t) onSave(t)
-      }}
-    >
-      <input className="input" value={val} onChange={(e) => setVal(e.target.value)} autoFocus />
-      <button type="button" className="btn btn-ghost" onClick={onCancel}>
-        <X className="h-4 w-4" />
-      </button>
-      <button className="btn btn-primary" type="submit">
-        <Check className="h-4 w-4" />
-      </button>
-    </form>
+    <div className="flex items-center w-full gap-2 px-2">
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') onSave(value)
+          if (e.key === 'Escape') onCancel()
+        }}
+        className="flex-1 px-4 py-3 text-base bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:outline-none"
+      />
+      <div className="flex gap-1">
+        <button
+          onClick={() => onSave(value)}
+          className="p-2 text-green-600 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/30 active:scale-95"
+          aria-label="Save"
+        >
+          <Check className="w-5 h-5" />
+        </button>
+        <button
+          onClick={onCancel}
+          className="p-2 text-red-600 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 active:scale-95"
+          aria-label="Cancel"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
   )
 }
 
