@@ -33,13 +33,13 @@ export default function Page() {
   const completedCount = useMemo(() => todos.filter(t => t.completed).length, [todos])
 
   return (
-    <main className="container py-10">
+    <main className="container py-12">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Todo</h1>
-        <p className="text-slate-500">Stay organized with a clean, fast, local-first todo app.</p>
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight heading-gradient">Todo</h1>
+        <p className="text-slate-600/80 dark:text-slate-300/80 mt-1">Stay organized with a clean, fast, local-first todo app.</p>
       </header>
 
-      <section className="card p-4 sm:p-6">
+      <section className="card p-4 md:p-6">
         <form
           className="grid grid-cols-1 sm:grid-cols-3 gap-2"
           onSubmit={(e) => {
@@ -108,12 +108,12 @@ export default function Page() {
           </button>
         </div>
 
-        <ul className="mt-4 space-y-2">
+        <ul className="mt-5 space-y-3">
           {filtered.length === 0 && (
             <li className="text-center text-slate-500 text-sm py-6">No todos yet.</li>
           )}
           {filtered.map((t) => (
-            <li key={t.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+            <li key={t.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur-md p-3">
               <button
                 className="rounded-full p-1 text-slate-500 hover:text-brand-600"
                 onClick={() => toggleTodo(t.id)}
