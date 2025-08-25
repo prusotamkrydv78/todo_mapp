@@ -5,16 +5,16 @@ import { MessageSquare, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 type Message = {
-  id: number
+  id: number | string
   text: string
-  sender: 'user' | 'ai'
+  sender: 'user' | 'ai' | 'loading'
 }
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([
-    { id: 1, text: 'Hello! How can I help you today?', sender: 'ai' }
+    { id: 'welcome', text: 'Hello! How can I help you today?', sender: 'ai' }
   ])
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -26,7 +26,7 @@ export default function ChatWidget() {
     scrollToBottom()
   }, [messages])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim()) return
 
@@ -36,17 +36,102 @@ export default function ChatWidget() {
       sender: 'user',
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    // Add loading message
+    const loadingMessage: Message = {
+      id: 'loading-' + Date.now(),
+      text: 'Thinking...',
+      sender: 'loading',
+    }
+
+    setMessages((prev) => [...prev, userMessage, loadingMessage])
     setInput('')
 
-    setTimeout(() => {
-      const aiMessage: Message = {
-        id: Date.now() + 1,
-        text: 'I\'m an AI assistant. AI implementation is in progress?',
-        sender: 'ai',
+    try {
+      const response = await fetch('http://localhost:4000/api/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: input, stream: true }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response from server');
       }
-      setMessages((prev) => [...prev, aiMessage])
-    }, 1000)
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let responseText = '';
+      const messageId = Date.now();
+
+      // Remove loading message
+      setMessages(prev => prev.filter(m => m.id !== loadingMessage.id));
+
+      // Process the stream
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.substring(6);
+            if (data === '[DONE]') continue;
+            
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.choices && parsed.choices[0].delta.content) {
+                responseText += parsed.choices[0].delta.content;
+                
+                // Update message with streaming content
+                setMessages(prev => {
+                  const existingMessageIndex = prev.findIndex(m => m.id === messageId);
+                  
+                  if (existingMessageIndex >= 0) {
+                    // Update existing message
+                    const newMessages = [...prev];
+                    newMessages[existingMessageIndex] = {
+                      ...newMessages[existingMessageIndex],
+                      text: responseText,
+                    };
+                    return newMessages;
+                  } else {
+                    // Add new message
+                    return [
+                      ...prev,
+                      {
+                        id: messageId,
+                        text: responseText,
+                        sender: 'ai',
+                      },
+                    ];
+                  }
+                });
+              }
+            } catch (e) {
+              console.error('Error parsing chunk:', e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      // Remove loading message and show error
+      setMessages(prev => [
+        ...prev.filter(m => m.id !== loadingMessage.id),
+        {
+          id: 'error-' + Date.now(),
+          text: 'Sorry, I encountered an error. Please try again later.',
+          sender: 'ai',
+        },
+      ]);
+    }
   }
 
   return (
