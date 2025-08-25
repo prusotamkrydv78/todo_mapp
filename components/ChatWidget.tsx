@@ -42,7 +42,7 @@ export default function ChatWidget() {
     setTimeout(() => {
       const aiMessage: Message = {
         id: Date.now() + 1,
-        text: 'I\'m an AI assistant. How can I help you further?',
+        text: 'I\'m an AI assistant. AI implementation is in progress?',
         sender: 'ai',
       }
       setMessages((prev) => [...prev, aiMessage])
