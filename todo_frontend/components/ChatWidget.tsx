@@ -1,20 +1,28 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { MessageSquare, X } from 'lucide-react'
+import { MessageSquare, X, Copy, Check, RotateCw } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import ReactMarkdown from 'react-markdown'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 
 type Message = {
   id: number | string
   text: string
   sender: 'user' | 'ai' | 'loading'
+  error?: boolean
 }
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([
-    { id: 'welcome', text: 'Hello! How can I help you today?', sender: 'ai' }
+    { 
+      id: 'welcome', 
+      text: 'Hello! I\'m your AI assistant. How can I help you today?\n\nI can help with:\n- Answering questions\n- Writing and debugging code\n- Explaining concepts\n- And much more!\n\n```javascript\n// Example code block\nfunction hello() {\n  console.log("Hello, world!");\n}\n```', 
+      sender: 'ai' 
+    }
   ])
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -39,12 +47,77 @@ export default function ChatWidget() {
     // Add loading message
     const loadingMessage: Message = {
       id: 'loading-' + Date.now(),
-      text: 'Thinking...',
+      text: '',
       sender: 'loading',
     }
 
     setMessages((prev) => [...prev, userMessage, loadingMessage])
     setInput('')
+    
+    try {
+      const response = await fetch('http://localhost:4000/api/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: input })
+      });
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let aiMessageId = 'ai-' + Date.now();
+      let buffer = '';
+
+      // Add initial AI message
+      setMessages(prev => [
+        ...prev.filter(m => m.sender !== 'loading'),
+        {
+          id: aiMessageId,
+          text: '',
+          sender: 'ai' as const
+        }
+      ]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.substring(6));
+            if (data.text) {
+              setMessages(prev => {
+                const updatedMessages = [...prev];
+                const aiMessage = updatedMessages.find(m => m.id === aiMessageId);
+                if (aiMessage) {
+                  aiMessage.text += data.text;
+                }
+                return updatedMessages;
+              });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setMessages(prev => [
+        ...prev.filter(m => m.sender !== 'loading'),
+        {
+          id: 'error-' + Date.now(),
+          text: 'Sorry, there was an error processing your request.',
+          sender: 'ai',
+          error: true
+        }
+      ]);
+    }
 
     try {
       const response = await fetch('http://localhost:4000/api/chat/stream', {
@@ -127,10 +200,114 @@ export default function ChatWidget() {
         ...prev.filter(m => m.id !== loadingMessage.id),
         {
           id: 'error-' + Date.now(),
-          text: 'Sorry, I encountered an error. Please try again later.',
+          text: error instanceof Error ? error.message : 'Sorry, I encountered an error. Please try again later.',
           sender: 'ai',
+          error: true,
         },
       ]);
+    }
+  }
+
+  const formatMessage = (text: string) => {
+    return (
+      <ReactMarkdown
+        components={{
+          code({ className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className || '')
+            const [copied, setCopied] = useState(false)
+
+            const copyToClipboard = (code: string) => {
+              navigator.clipboard.writeText(code)
+              setCopied(true)
+              setTimeout(() => setCopied(false), 2000)
+            }
+
+            return (
+              <div className="relative my-2 rounded-lg overflow-hidden">
+                <div className="flex justify-between items-center bg-gray-800 text-gray-300 text-xs px-4 py-1">
+                  <span>{match?.[1] || 'code'}</span>
+                  <button 
+                    onClick={() => copyToClipboard(String(children).replace(/\n$/, ''))}
+                    className="p-1 rounded hover:bg-gray-700 transition-colors"
+                    title="Copy to clipboard"
+                  >
+                    {copied ? (
+                      <Check className="w-3.5 h-3.5" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+                <SyntaxHighlighter
+                  style={vscDarkPlus}
+                  language={match?.[1] || 'text'}
+                  PreTag="div"
+                  customStyle={{
+                    margin: 0,
+                    padding: '1rem',
+                    borderRadius: '0 0 0.5rem 0.5rem',
+                    fontSize: '0.9em',
+                    lineHeight: '1.5',
+                  }}
+                  {...props}
+                >
+                  {String(children).replace(/\n$/, '')}
+                </SyntaxHighlighter>
+              </div>
+            )
+          },
+          p: ({ node, ...props }) => (
+            <p className="mb-2 last:mb-0" {...props} />
+          ),
+          ul: ({ node, ...props }) => (
+            <ul className="list-disc pl-6 space-y-1 my-2" {...props} />
+          ),
+          ol: ({ node, ...props }) => (
+            <ol className="list-decimal pl-6 space-y-1 my-2" {...props} />
+          ),
+          a: ({ node, ...props }) => (
+            <a 
+              className="text-purple-500 hover:underline" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              {...props} 
+            />
+          ),
+          blockquote: ({ node, ...props }) => (
+            <blockquote 
+              className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 py-1 my-2 text-gray-600 dark:text-gray-300"
+              {...props} 
+            />
+          ),
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    )
+  }
+
+  const renderMessageContent = (message: Message) => {
+    if (message.sender === 'loading') {
+      return (
+        <div className="flex items-center space-x-2">
+          <div className="w-2 h-2 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-2 h-2 rounded-full bg-cyan-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="w-2 h-2 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
+      )
+    }
+    return formatMessage(message.text)
+  }
+
+  const retryLastMessage = () => {
+    const lastUserMessage = [...messages].reverse().find(m => m.sender === 'user')
+    if (lastUserMessage) {
+      setMessages(prev => [
+        ...prev.filter(m => !m.error),
+        { ...lastUserMessage, id: Date.now() },
+        { id: 'loading-' + Date.now(), text: '', sender: 'loading' as const }
+      ])
+      // Trigger message sending logic here
     }
   }
 
@@ -203,7 +380,20 @@ export default function ChatWidget() {
                               : 'rounded-bl-none bg-gray-100 text-gray-800 dark:bg-gray-700/80 dark:text-gray-200'
                           }`}
                         >
-                          {message.text}
+                          {message.error ? (
+                            <div className="text-red-500">
+                              {message.text}
+                              <button 
+                                onClick={retryLastMessage}
+                                className="ml-2 text-sm text-red-400 hover:text-red-300 flex items-center"
+                              >
+                                <RotateCw className="w-3.5 h-3.5 mr-1" />
+                                Retry
+                              </button>
+                            </div>
+                          ) : (
+                            renderMessageContent(message)
+                          )}
                         </div>
                       </motion.div>
                     ))}
