@@ -1,11 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const connectDB = require('./config/db');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const userRoutes = require('./routes/userRoutes');
-const todoRoutes = require('./routes/todoRoutes');
-const chatRoutes = require('./routes/chatRoutes');
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import connectDB from './config/db.js';
+import userRoutes from './routes/userRoutes.js';
+import todoRoutes from './routes/todoRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 
 dotenv.config();
 connectDB();

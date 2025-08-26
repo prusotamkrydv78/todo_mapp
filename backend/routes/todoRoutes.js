@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const Todo = require('../models/todoModel');
-const protect = require('../middleware/authMiddleware');
+import Todo from '../models/todoModel.js';
+import protect from '../middleware/authMiddleware.js';
 
 // Get all todos
 router.get('/', protect, async (req, res) => {
@@ -73,4 +73,4 @@ router.delete('/:id', protect, async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router

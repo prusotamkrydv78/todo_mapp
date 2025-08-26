@@ -9,6 +9,23 @@
   --brand: 99 102 241; /* indigo-500 */
 }
 
+@keyframes gradient-text {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.bg-gradient-text {
+  background-size: 200% auto;
+  animation: gradient-text 3s linear infinite;
+}
+
 :root.dark {
   --bg: 2 6 23;
   --card: 15 23 42;

@@ -372,11 +372,7 @@ export default function ChatWidget() {
                       boxShadow: '0 2px 10px -5px rgba(0, 0, 0, 0.05)'
                     }}
                   />
-                  {!input.trim() && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                      <Send size={18} />
-                    </div>
-                  )}
+                  
                 </div>
                 <button
                   type="submit"

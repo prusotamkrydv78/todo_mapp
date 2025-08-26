@@ -15,7 +15,7 @@ export default function SplashPage() {
         if (user) {
           router.replace('/home')
         } else {
-          router.replace('/auth/register')
+          router.replace('/auth')
         }
       }
     }, 3000)

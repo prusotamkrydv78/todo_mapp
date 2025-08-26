@@ -1,8 +1,9 @@
-const express = require('express');
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import User from '../models/userModel.js';
+import authMiddleware from '../middleware/authMiddleware.js'; 
+
 const router = express.Router();
-const User = require('../models/userModel');
-const jwt = require('jsonwebtoken');
-const authMiddleware = require('../middleware/authMiddleware');
 
 // Get current user
 router.get('/me', authMiddleware, async (req, res) => {
@@ -93,28 +94,41 @@ router.post('/register', async (req, res) => {
 // Login user
 router.post('/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
+        const { identifier, password } = req.body;
+        
+        // Find user by email or username
+        const user = await User.findOne({
+            $or: [
+                { email: identifier },
+                { username: identifier }
+            ]
+        });
 
-        if (user && (await user.matchPassword(password))) {
-            res.json({
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        if (await user.matchPassword(password)) {
+            // Generate JWT token
+            const token = jwt.sign(
+                { id: user._id },
+                process.env.JWT_SECRET,
+                { expiresIn: '30d' }
+            );
+
+            return res.json({
                 _id: user._id,
                 name: user.name,
                 email: user.email,
-                token: generateToken(user._id)
+                username: user.username,
+                isVerified: user.isVerified,
+                token
             });
-        } else {
-            res.status(401).json({ message: 'Invalid email or password' });
-        }
+        }   
+        
+        return res.status(401).json({ message: 'Invalid credentials' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        return res.status(500).json({ message: error.message });
     }
-});
-
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: '30d'
-    });
-};
-
-module.exports = router;
+})
+export default router
