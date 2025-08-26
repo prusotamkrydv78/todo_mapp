@@ -3,14 +3,24 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
+import { useAuth } from '@/lib/auth'
 
 export default function SplashPage() {
   const router = useRouter()
+  const { user, isLoading } = useAuth()
 
   useEffect(() => {
-    const t = setTimeout(() => router.replace('/get-started'), 3000)
+    const t = setTimeout(() => {
+      if (!isLoading) {
+        if (user) {
+          router.replace('/home')
+        } else {
+          router.replace('/auth/register')
+        }
+      }
+    }, 3000)
     return () => clearTimeout(t)
-  }, [router])
+  }, [router, user, isLoading])
 
   return (
     <main className="min-h-[100dvh] flex items-center justify-center  ">

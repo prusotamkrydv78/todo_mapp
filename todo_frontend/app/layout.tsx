@@ -2,12 +2,8 @@ import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import ThemeToggle from '@/components/ThemeToggle'
-import dynamic from 'next/dynamic'
-
-// Dynamically import ChatWidget with no SSR to avoid hydration issues
-const ChatWidget = dynamic(() => import('@/components/ChatWidget'), {
-  ssr: false,
-})
+import { AuthProvider } from '@/lib/auth'
+import { ConditionalChatWidget } from '@/components/ConditionalChatWidget'
 
 export const metadata: Metadata = {
   title: 'Todo App',
@@ -26,6 +22,22 @@ export const metadata: Metadata = {
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
     { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
   ],
+  keywords: 'todo, task management, productivity, next.js',
+  authors: [{ name: 'Prusotam Yadav' }],
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://todo.example.com',
+    title: 'Todo App',
+    description: 'A beautiful and productive todo application',
+    images: ['/og-image.png'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Todo App',
+    description: 'A beautiful and productive todo application',
+    images: ['/og-image.png'],
+  }
 }
 
 export const viewport: Viewport = {
@@ -67,7 +79,8 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-[rgb(var(--bg))] transition-colors touch-manipulation">
         <ThemeProvider>
-          {/* Background */}
+          <AuthProvider>
+            {/* Background */}
           <div aria-hidden className="fixed inset-0 -z-10 pointer-events-none">
             <div className="spotlight" />
             <div className="aurora">
@@ -87,7 +100,8 @@ export default function RootLayout({
             {children}
           </main>
           
-          <ChatWidget />
+          <ConditionalChatWidget />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
