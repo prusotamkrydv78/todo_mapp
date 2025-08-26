@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { apiEndpoints } from '@/lib/api-config';
 
 type FormData = {
   name: string;
@@ -25,7 +26,7 @@ const RegisterSteps = () => {
 
   const handleSubmit = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/users/register', {
+      const response = await fetch(apiEndpoints.register, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

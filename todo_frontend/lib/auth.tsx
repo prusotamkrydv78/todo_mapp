@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
+import { apiEndpoints } from './api-config';
 
 type User = {
   _id: string;
@@ -32,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/users/me', {
+      const response = await fetch(apiEndpoints.me, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

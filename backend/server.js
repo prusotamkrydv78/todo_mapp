@@ -6,6 +6,7 @@ import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import todoRoutes from "./routes/todoRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
+import aiChatRoutes from "./routes/aiChatRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -18,6 +19,18 @@ if (!process.env.GEMINI_API_KEY) {
 
 const app = express();
 
+// CORS configuration
+app.use(cors({
+  origin: [
+    'https://todo-app-bc.vercel.app',
+    'http://localhost:3000', // For local development
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -27,22 +40,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/users", userRoutes);
 app.use("/api/todos", todoRoutes);
 app.use("/api/chats", chatRoutes);
+app.use("/api/ai-chat", aiChatRoutes);
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-app.get("/test", (req, res) => {
+// Health check endpoint
+app.get("/", (req, res) => {
   res.json({
-    sucess: true,
+    success: true,
     message: "your server is working",
   });
-});
-// Gemini chat endpoints
-app.post("/api/ai-chat", async (req, res) => {
-  // ...existing AI chat code...
-});
-
-app.post("/api/ai-chat/stream", async (req, res) => {
-  // ...existing AI chat stream code...
 });
 
 const PORT = process.env.PORT || 5000;

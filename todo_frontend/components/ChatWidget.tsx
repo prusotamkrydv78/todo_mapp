@@ -4,12 +4,11 @@ import { useState, useRef, useEffect } from 'react'
 import { MessageSquare, X, Send, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
+import { apiEndpoints, fetchWithConfig } from '@/lib/api-config'
 
 type Message = {
-  id: number | string
-  text: string
-  sender: 'user' | 'ai' | 'loading'
-  error?: boolean
+  content: string
+  role: 'user' | 'assistant'
 }
 
 export default function ChatWidget() {
@@ -17,60 +16,37 @@ export default function ChatWidget() {
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([
     { 
-      id: 'welcome', 
-      text: 'Hello! I\'m your AI assistant. How can I help you today?',
-      sender: 'ai' 
+      content: 'Hi there! I\'m your AI girlfriend 💖 How can I make your day better, my love? 😘',
+      role: 'assistant'
     }
   ])
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  // Add welcome message when chat is first opened
-  useEffect(() => {
-    if (isOpen && messages.length === 1) {
-      setMessages(prev => [
-        ...prev,
-        {
-          id: 'welcome-msg',
-          text: 'Hi there! I\'m your AI girlfriend 💖 How can I make your day better, my love? 😘',
-          sender: 'ai'
-        }
-      ]);
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [isOpen, messages.length]);
+  }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
     if (!input.trim()) return
 
-    const userMessage: Message = {
-      id: Date.now(),
-      text: input,
-      sender: 'user',
-    }
+    // Add user message
+    setMessages(prev => [
+      ...prev,
+      {
+        content: input,
+        role: 'user'
+      }
+    ])
 
-    // Add loading message
-    const loadingMessage: Message = {
-      id: 'loading-' + Date.now(),
-      text: '',
-      sender: 'loading'
-    }
-
-    setMessages(prev => [...prev, userMessage, loadingMessage])
-    setInput('')
-    
     try {
-      const response = await fetch('http://localhost:4000/api/chat/stream', {
+      const response = await fetchWithConfig(apiEndpoints.chat, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ message: input })
       });
@@ -81,17 +57,14 @@ export default function ChatWidget() {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      const aiMessageId = 'ai-' + Date.now();
-      let buffer = '';
-      let aiMessageText = '';
+      let accumulatedText = '';
 
-      // Add initial AI message
+      // Add initial assistant message
       setMessages(prev => [
-        ...prev.filter(m => m.sender !== 'loading'),
+        ...prev,
         {
-          id: aiMessageId,
-          text: '',
-          sender: 'ai' as const
+          content: '',
+          role: 'assistant'
         }
       ]);
 
@@ -100,72 +73,32 @@ export default function ChatWidget() {
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
-        
-        // Process complete SSE messages (separated by double newline)
-        const messages = buffer.split('\n\n');
-        buffer = messages.pop() || '';
+        accumulatedText += chunk;
 
-        for (const message of messages) {
-          if (!message.trim()) continue;
-          
-          let eventType = 'message';
-          let data = message;
-          
-          // Check if this is an event message (starts with 'event:')
-          if (message.startsWith('event:')) {
-            const parts = message.split('\ndata:');
-            if (parts.length >= 2) {
-              eventType = parts[0].substring(6).trim();
-              data = parts[1].trim();
-            }
-          } else if (message.startsWith('data:')) {
-            data = message.substring(5).trim();
-          }
-          
-          if (data === '[DONE]') continue;
-          
-          try {
-            const parsedData = JSON.parse(data);
-            
-            if (eventType === 'message' && parsedData.text) {
-              aiMessageText += parsedData.text;
-              
-              setMessages(prev => {
-                const updatedMessages = [...prev];
-                const aiMessage = updatedMessages.find(m => m.id === aiMessageId);
-                if (aiMessage) {
-                  aiMessage.text = aiMessageText;
-                }
-                return updatedMessages;
-              });
-            }
-            
-            if (eventType === 'error') {
-              throw new Error(parsedData.error || 'An error occurred');
-            }
-            
-          } catch (e) {
-            console.error('Error processing message:', e);
-            throw e;
-          }
-        }
+        // Update the last message with accumulated text
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = {
+            content: accumulatedText,
+            role: 'assistant'
+          };
+          return newMessages;
+        });
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error during chat:', error);
+      // Update the last message to show error
       setMessages(prev => [
-        ...prev.filter(m => !m.id.toString().startsWith('loading-')),
+        ...prev.slice(0, -1),
         {
-          id: 'error-' + Date.now(),
-          text: error instanceof Error ? error.message : 'Sorry, I encountered an error. Please try again later.',
-          sender: 'ai',
-          error: true
+          content: 'An error occurred. Please try again.',
+          role: 'assistant'
         }
       ]);
     }
   }
 
-  const formatMessage = (text: string) => {
+  const formatMessage = (content: string) => {
     return (
       <ReactMarkdown
         components={{
@@ -198,8 +131,10 @@ export default function ChatWidget() {
               {...props} 
             />
           ),
-          code: ({ node, inline, className, children, ...props }) => {
+          code: (props: any) => {
+            const { className, children } = props
             const match = /language-(\w+)/.exec(className || '')
+            const inline = 'inline' in props
             return !inline ? (
               <div className="bg-gray-100 rounded-lg my-2 overflow-hidden">
                 <div className="bg-gray-200 px-3 py-1 text-xs text-gray-700 flex justify-between items-center">
@@ -219,7 +154,7 @@ export default function ChatWidget() {
           }
         }}
       >
-        {text}
+        {content}
       </ReactMarkdown>
     )
   }
@@ -257,43 +192,25 @@ export default function ChatWidget() {
             
             {/* Messages */}
             <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-gradient-to-b from-white to-gray-50">
-              {messages.map((msg) => (
+              {messages.map((msg, index) => (
                 <motion.div
-                  key={msg.id}
+                  key={index}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={`flex ${
-                    msg.sender === 'user' ? 'justify-end' : 'justify-start'
+                    msg.role === 'user' ? 'justify-end' : 'justify-start'
                   }`}
                 >
                   <div
                     className={`max-w-[85%] p-3.5 rounded-2xl ${
-                      msg.sender === 'user'
+                      msg.role === 'user'
                         ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-br-sm shadow-md'
-                        : msg.sender === 'ai' || msg.sender === 'loading'
-                        ? 'bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100'
-                        : 'bg-white text-gray-800 rounded-bl-sm'
+                        : 'bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100'
                     }`}
                   >
-                    {msg.sender === 'loading' ? (
-                      <div className="flex space-x-1.5 px-2 py-1">
-                        {[0, 150, 300].map((delay) => (
-                          <div 
-                            key={delay}
-                            className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" 
-                            style={{ 
-                              animationDelay: `${delay}ms`,
-                              animationDuration: '1s',
-                              animationIterationCount: 'infinite'
-                            }} 
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="prose prose-sm max-w-none">
-                        {formatMessage(msg.text)}
-                      </div>
-                    )}
+                    <div className="prose prose-sm max-w-none">
+                      {formatMessage(msg.content)}
+                    </div>
                   </div>
                 </motion.div>
               ))}

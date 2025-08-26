@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
+import { apiEndpoints } from '@/lib/api-config';
 
 type FormData = {
   identifier: string; // Can be email or username
@@ -28,7 +29,7 @@ export default function LoginSteps() {
 
   const handleSubmit = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/users/login', {
+      const response = await fetch(apiEndpoints.login, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
