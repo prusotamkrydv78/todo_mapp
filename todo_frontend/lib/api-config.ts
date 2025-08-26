@@ -1,4 +1,4 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+export const API_BASE_URL = 'https://todo-app-bc.vercel.app';
 
 export const apiEndpoints = {
   chat: `${API_BASE_URL}/api/ai-chat/chat`,
@@ -12,8 +12,11 @@ export const fetchWithConfig = async (url: string, options: RequestInit = {}) =>
     credentials: 'include', // Sends cookies with cross-origin requests
     headers: {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Origin': window?.location?.origin || '*',
       ...options.headers,
     },
+    mode: 'cors', // Enable CORS
     ...options,
   };
 
