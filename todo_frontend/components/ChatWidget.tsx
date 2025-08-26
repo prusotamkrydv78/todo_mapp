@@ -69,8 +69,9 @@ export default function ChatWidget() {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let aiMessageId = 'ai-' + Date.now();
+      const aiMessageId = 'ai-' + Date.now();
       let buffer = '';
+      let aiMessageText = '';
 
       // Add initial AI message
       setMessages(prev => [
@@ -86,124 +87,74 @@ export default function ChatWidget() {
         const { done, value } = await reader.read();
         if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || '';
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        
+        // Process complete SSE messages (separated by double newline)
+        const messages = buffer.split('\n\n');
+        buffer = messages.pop() || '';
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = JSON.parse(line.substring(6));
-            if (data.text) {
+        for (const message of messages) {
+          if (!message.trim()) continue;
+          
+          let eventType = 'message';
+          let data = message;
+          
+          // Check if this is an event message (starts with 'event:')
+          if (message.startsWith('event:')) {
+            const parts = message.split('\ndata:');
+            if (parts.length >= 2) {
+              eventType = parts[0].substring(6).trim();
+              data = parts[1].trim();
+            }
+          } else if (message.startsWith('data:')) {
+            data = message.substring(5).trim();
+          }
+          
+          if (data === '[DONE]') continue;
+          
+          try {
+            const parsedData = JSON.parse(data);
+            
+            if (eventType === 'message' && parsedData.text) {
+              aiMessageText += parsedData.text;
+              
               setMessages(prev => {
                 const updatedMessages = [...prev];
                 const aiMessage = updatedMessages.find(m => m.id === aiMessageId);
                 if (aiMessage) {
-                  aiMessage.text += data.text;
+                  aiMessage.text = aiMessageText;
                 }
                 return updatedMessages;
               });
             }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      setMessages(prev => [
-        ...prev.filter(m => m.sender !== 'loading'),
-        {
-          id: 'error-' + Date.now(),
-          text: 'Sorry, there was an error processing your request.',
-          sender: 'ai',
-          error: true
-        }
-      ]);
-    }
-
-    try {
-      const response = await fetch('http://localhost:4000/api/chat/stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: input, stream: true }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get response from server');
-      }
-
-      if (!response.body) {
-        throw new Error('No response body');
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let responseText = '';
-      const messageId = Date.now();
-
-      // Remove loading message
-      setMessages(prev => prev.filter(m => m.id !== loadingMessage.id));
-
-      // Process the stream
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n').filter(line => line.trim() !== '');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.substring(6);
-            if (data === '[DONE]') continue;
             
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.choices && parsed.choices[0].delta.content) {
-                responseText += parsed.choices[0].delta.content;
-                
-                // Update message with streaming content
-                setMessages(prev => {
-                  const existingMessageIndex = prev.findIndex(m => m.id === messageId);
-                  
-                  if (existingMessageIndex >= 0) {
-                    // Update existing message
-                    const newMessages = [...prev];
-                    newMessages[existingMessageIndex] = {
-                      ...newMessages[existingMessageIndex],
-                      text: responseText,
-                    };
-                    return newMessages;
-                  } else {
-                    // Add new message
-                    return [
-                      ...prev,
-                      {
-                        id: messageId,
-                        text: responseText,
-                        sender: 'ai',
-                      },
-                    ];
-                  }
-                });
-              }
-            } catch (e) {
-              console.error('Error parsing chunk:', e);
+            // Handle other event types if needed
+            if (eventType === 'done') {
+              // Clean up or handle completion if needed
+              break;
             }
+            
+            if (eventType === 'error') {
+              throw new Error(parsedData.error || 'An error occurred');
+            }
+            
+          } catch (e) {
+            console.error('Error processing message:', e);
+            throw e; // Re-throw to be caught by the outer catch
           }
         }
       }
     } catch (error) {
       console.error('Error:', error);
-      // Remove loading message and show error
       setMessages(prev => [
-        ...prev.filter(m => m.id !== loadingMessage.id),
+        ...prev.filter(m => !m.id.toString().startsWith('loading-')),
         {
           id: 'error-' + Date.now(),
           text: error instanceof Error ? error.message : 'Sorry, I encountered an error. Please try again later.',
           sender: 'ai',
-          error: true,
-        },
+          error: true
+        }
       ]);
     }
   }
