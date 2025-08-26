@@ -4,10 +4,6 @@ import { useState, useRef, useEffect } from 'react'
 import { MessageSquare, X, Send, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
-import { Copy, Check } from 'lucide-react'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism'
-
 
 type Message = {
   id: number | string
@@ -22,7 +18,7 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([
     { 
       id: 'welcome', 
-      text: 'Hello! I\'m your AI assistant. How can I help you today?\n\nI can help with:\n- Answering questions\n- Writing and debugging code\n- Explaining concepts\n- And much more!\n\n```javascript\n// Example code block\nfunction hello() {\n  console.log("Hello, world!");\n}\n```', 
+      text: 'Hello! I\'m your AI assistant. How can I help you today?',
       sender: 'ai' 
     }
   ])
@@ -35,6 +31,20 @@ export default function ChatWidget() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Add welcome message when chat is first opened
+  useEffect(() => {
+    if (isOpen && messages.length === 1) {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: 'welcome-msg',
+          text: 'Hi there! I\'m your AI girlfriend 💖 How can I make your day better, my love? 😘',
+          sender: 'ai'
+        }
+      ]);
+    }
+  }, [isOpen, messages.length]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,10 +60,10 @@ export default function ChatWidget() {
     const loadingMessage: Message = {
       id: 'loading-' + Date.now(),
       text: '',
-      sender: 'loading',
+      sender: 'loading'
     }
 
-    setMessages((prev) => [...prev, userMessage, loadingMessage])
+    setMessages(prev => [...prev, userMessage, loadingMessage])
     setInput('')
     
     try {
@@ -131,19 +141,13 @@ export default function ChatWidget() {
               });
             }
             
-            // Handle other event types if needed
-            if (eventType === 'done') {
-              // Clean up or handle completion if needed
-              break;
-            }
-            
             if (eventType === 'error') {
               throw new Error(parsedData.error || 'An error occurred');
             }
             
           } catch (e) {
             console.error('Error processing message:', e);
-            throw e; // Re-throw to be caught by the outer catch
+            throw e;
           }
         }
       }
@@ -161,62 +165,10 @@ export default function ChatWidget() {
     }
   }
 
-  const handleRetry = async () => {
-    const lastUserMessage = messages.find(m => m.sender === 'user');
-    if (lastUserMessage) {
-      setMessages(prev => prev.filter(m => !m.error));
-      await handleSubmit(lastUserMessage.text);
-    }
-  };
-
   const formatMessage = (text: string) => {
     return (
       <ReactMarkdown
         components={{
-          code({ className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || '')
-            const [copied, setCopied] = useState(false)
-
-            const copyToClipboard = (code: string) => {
-              navigator.clipboard.writeText(code)
-              setCopied(true)
-              setTimeout(() => setCopied(false), 2000)
-            }
-
-            return (
-              <div className="relative my-2 rounded-lg overflow-hidden">
-                <div className="flex justify-between items-center bg-gray-800 text-gray-300 text-xs px-4 py-1">
-                  <span>{match?.[1] || 'code'}</span>
-                  <button 
-                    onClick={() => copyToClipboard(String(children).replace(/\n$/, ''))}
-                    className="p-1 rounded hover:bg-gray-700 transition-colors"
-                    title="Copy to clipboard"
-                  >
-                    {copied ? (
-                      <Check className="w-3.5 h-3.5" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                </div>
-                <SyntaxHighlighter
-                  style={vscDarkPlus}
-                  language={match?.[1] || 'text'}
-                  PreTag="div"
-                  customStyle={{
-                    margin: 0,
-                    padding: '1rem',
-                    borderRadius: '0 0 0.5rem 0.5rem',
-                    fontSize: '0.9em',
-                    lineHeight: '1.5',
-                  }}
-                  {...props}
-                >
-                  {String(children).replace(/\n$/, '')}
-                </SyntaxHighlighter>
-              </div>
-            )
-          },
           p: ({ node, ...props }) => (
             <p className="mb-2 last:mb-0" {...props} />
           ),
@@ -234,41 +186,42 @@ export default function ChatWidget() {
               {...props} 
             />
           ),
+          strong: ({ node, ...props }) => (
+            <strong className="font-semibold" {...props} />
+          ),
+          em: ({ node, ...props }) => (
+            <em className="italic" {...props} />
+          ),
           blockquote: ({ node, ...props }) => (
             <blockquote 
-              className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 py-1 my-2 text-gray-600 dark:text-gray-300"
+              className="border-l-4 border-gray-300 pl-4 py-1 my-2 text-gray-600" 
               {...props} 
             />
           ),
+          code: ({ node, inline, className, children, ...props }) => {
+            const match = /language-(\w+)/.exec(className || '')
+            return !inline ? (
+              <div className="bg-gray-100 rounded-lg my-2 overflow-hidden">
+                <div className="bg-gray-200 px-3 py-1 text-xs text-gray-700 flex justify-between items-center">
+                  <span>{match?.[1] || 'Code'}</span>
+                </div>
+                <pre className="p-3 overflow-x-auto text-sm">
+                  <code className={className} {...props}>
+                    {children}
+                  </code>
+                </pre>
+              </div>
+            ) : (
+              <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono">
+                {children}
+              </code>
+            )
+          }
         }}
       >
         {text}
       </ReactMarkdown>
     )
-  }
-
-  const renderMessageContent = (message: Message) => {
-    if (message.sender === 'loading') {
-      return (
-        <div className="flex items-center space-x-2">
-          <div className="w-2 h-2 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-          <div className="w-2 h-2 rounded-full bg-cyan-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-          <div className="w-2 h-2 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-        </div>
-      )
-    }
-    return formatMessage(message.text)
-  }
-
-  const retryLastMessage = () => {
-    const lastUserMessage = [...messages].reverse().find(m => m.sender === 'user')
-    if (lastUserMessage) {
-      setMessages(prev => [
-        ...prev.filter(m => !m.error),
-        { ...lastUserMessage, id: Date.now() },
-        { id: 'loading-' + Date.now(), text: '', sender: 'loading' as const }
-      ])
-    }
   }
 
   return (
@@ -317,7 +270,7 @@ export default function ChatWidget() {
                     className={`max-w-[85%] p-3.5 rounded-2xl ${
                       msg.sender === 'user'
                         ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-br-sm shadow-md'
-                        : msg.sender === 'ai'
+                        : msg.sender === 'ai' || msg.sender === 'loading'
                         ? 'bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100'
                         : 'bg-white text-gray-800 rounded-bl-sm'
                     }`}
@@ -340,14 +293,6 @@ export default function ChatWidget() {
                       <div className="prose prose-sm max-w-none">
                         {formatMessage(msg.text)}
                       </div>
-                    )}
-                    {msg.error && (
-                      <button 
-                        onClick={handleRetry}
-                        className="mt-2 text-xs text-red-500 hover:underline"
-                      >
-                        Retry message
-                      </button>
                     )}
                   </div>
                 </motion.div>
@@ -372,7 +317,11 @@ export default function ChatWidget() {
                       boxShadow: '0 2px 10px -5px rgba(0, 0, 0, 0.05)'
                     }}
                   />
-                  
+                  {!input.trim() && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                      <Send size={18} />
+                    </div>
+                  )}
                 </div>
                 <button
                   type="submit"
