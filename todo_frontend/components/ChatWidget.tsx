@@ -43,7 +43,11 @@ export default function ChatWidget() {
     ])
 
     try {
+<<<<<<< HEAD
       const response = await fetchWithConfig(apiEndpoints.chat, {
+=======
+      const response = await fetch('https://ex-server-ten.vercel.app/api/chat/stream', {
+>>>>>>> save-work
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
