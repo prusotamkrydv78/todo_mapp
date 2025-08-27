@@ -18,9 +18,35 @@ if (!process.env.GEMINI_API_KEY) {
 }
 
 const app = express();
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://todo-app-bc.vercel.app'
+];
+
 app.use(cors({
   origin: (origin, callback) => {
-    callback(null, origin || "*"); // allow any origin
+    if (!origin) return callback(null, true); // allow non-browser requests (like Postman)
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, origin);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // allow non-browser requests (like Postman)
+    if ([
+      'http://localhost:3000',
+      'https://todo-app-bc.vercel.app'
+    ].includes(origin)) {
+      return callback(null, origin);
+    }
+    return callback(new Error('Not allowed by CORS'));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
