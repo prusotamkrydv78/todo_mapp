@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism'
+import type { CSSProperties } from 'react'
 
 type Message = {
   id: number | string
@@ -20,9 +21,10 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
-      text: 'Hello! I\'m your AI assistant. How can I help you today?\n\nI can help with:\n- Answering questions\n- Writing and debugging code\n- Explaining concepts\n- And much more!\n\n```javascript\n// Example code block\nfunction hello() {\n  console.log("Hello, world!");\n}\n```',
+      text: "Hi love 💕 I'm your little AI angel, always here for you 🤗✨",
       sender: 'ai'
     }
+    
   ])
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -166,13 +168,13 @@ export default function ChatWidget() {
           code({ className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '')
             const [copied, setCopied] = useState(false)
-
+          
             const copyToClipboard = (code: string) => {
               navigator.clipboard.writeText(code)
               setCopied(true)
               setTimeout(() => setCopied(false), 2000)
             }
-
+          
             return (
               <div className="relative my-2 rounded-lg overflow-hidden">
                 <div className="flex justify-between items-center bg-gray-800 text-gray-300 text-xs px-4 py-1">
@@ -190,7 +192,7 @@ export default function ChatWidget() {
                   </button>
                 </div>
                 <SyntaxHighlighter
-                  style={vscDarkPlus}
+                  style={vscDarkPlus as any} // ✅ cast to any to avoid type errors
                   language={match?.[1] || 'text'}
                   PreTag="div"
                   customStyle={{
@@ -200,13 +202,14 @@ export default function ChatWidget() {
                     fontSize: '0.9em',
                     lineHeight: '1.5',
                   }}
-                  {...props}
+                  {...(props as any)} // ✅ cast props so TS doesn’t complain
                 >
                   {String(children).replace(/\n$/, '')}
                 </SyntaxHighlighter>
               </div>
             )
-          },
+          }
+          ,
           p: ({ node, ...props }) => (
             <p className="mb-2 last:mb-0" {...props} />
           ),

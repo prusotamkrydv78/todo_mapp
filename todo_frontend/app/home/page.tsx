@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus, Trash2, CheckCircle2, Circle, Pencil, X, Check, ArrowUp, ArrowDown, CalendarDays, Flag, ListChecks } from 'lucide-react'
+import { Plus, Trash2, CheckCircle2, Circle, Pencil, X, Check, ArrowUp, ArrowDown, CalendarDays, Flag, ListChecks, Link } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTodoStore } from '@/lib/store'
 import classNames from 'classnames'
@@ -235,7 +235,7 @@ export default function Page() {
       </motion.section>
 
       <footer className="mt-8 text-center text-xs text-slate-400">
-        Built with Next.js, Tailwind CSS, and Zustand.
+        Built by <a href="https://www.facebook.com/purshotamydv.dev" target="_blank" rel="noopener noreferrer" className="underline">Prusotam Yadav</a>.
       </footer>
     </main>
   )
