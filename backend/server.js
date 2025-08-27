@@ -18,18 +18,16 @@ if (!process.env.GEMINI_API_KEY) {
 }
 
 const app = express();
-
-// CORS configuration
 app.use(cors({
-  origin: [
-    'https://todo-app-bc.vercel.app',
-    'http://localhost:3000', // For local development
-  ],
+  origin: (origin, callback) => {
+    callback(null, origin || "*"); // allow any origin
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
   optionsSuccessStatus: 200
 }));
+
 
 // Middleware
 app.use(cors());
