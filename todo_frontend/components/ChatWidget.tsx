@@ -55,7 +55,7 @@ export default function ChatWidget() {
     setInput('')
     
     try {
-      const response = await fetch('http://localhost:4000/api/chat/stream', {
+      const response = await fetch('https://ex-server-ten.vercel.app/api/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
