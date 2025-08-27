@@ -2,25 +2,17 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
-import { useAuth } from '@/lib/auth'
+import { motion } from 'framer-motion' 
 
 export default function SplashPage() {
-  const router = useRouter()
-  const { user, isLoading } = useAuth()
+  const router = useRouter() 
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      if (!isLoading) {
-        if (user) {
-          router.replace('/home')
-        } else {
-          router.replace('/auth')
-        }
-      }
+    const t = setTimeout(() => { 
+          router.replace('/home') 
     }, 3000)
     return () => clearTimeout(t)
-  }, [router, user, isLoading])
+  }, [router])
 
   return (
     <main className="min-h-[100dvh] flex items-center justify-center  ">

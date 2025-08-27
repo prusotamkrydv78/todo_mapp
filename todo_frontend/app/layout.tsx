@@ -1,8 +1,7 @@
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { ThemeProvider } from '@/components/ThemeProvider'
-import ThemeToggle from '@/components/ThemeToggle'
-import { AuthProvider } from '@/lib/auth'
+import ThemeToggle from '@/components/ThemeToggle' 
 import { ConditionalChatWidget } from '@/components/ConditionalChatWidget'
 
 export const metadata: Metadata = {
@@ -78,8 +77,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Todo App" />
       </head>
       <body className="min-h-screen bg-[rgb(var(--bg))] transition-colors touch-manipulation">
-        <ThemeProvider>
-          <AuthProvider>
+        <ThemeProvider> 
             {/* Background */}
           <div aria-hidden className="fixed inset-0 -z-10 pointer-events-none">
             <div className="spotlight" />
@@ -100,8 +98,7 @@ export default function RootLayout({
             {children}
           </main>
           
-          <ConditionalChatWidget />
-          </AuthProvider>
+          <ConditionalChatWidget /> 
         </ThemeProvider>
       </body>
     </html>
