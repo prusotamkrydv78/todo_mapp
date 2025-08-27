@@ -1,8 +1,0 @@
-{
-  "watch": ["server.js", "routes/*", "models/*", "config/*", "middleware/*"],
-  "ext": "js,json",
-  "ignore": ["node_modules/*"],
-  "env": {
-    "NODE_ENV": "development"
-  }
-}
