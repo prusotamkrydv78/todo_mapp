@@ -158,7 +158,7 @@ export default function Page() {
           {filtered.map((t) => (
             <motion.li
               layout
-              key={t.id}
+              key={t._id}
               initial={{ y: 8, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -8, opacity: 0 }}
@@ -168,19 +168,19 @@ export default function Page() {
               <div className="flex items-center gap-3">
                 <motion.button
                   className="rounded-full p-1.5 text-slate-500 hover:text-brand-600"
-                  onClick={() => toggleTodo(t.id)}
+                  onClick={() => toggleTodo(t._id)}
                   aria-label={t.completed ? 'Mark as active' : 'Mark as completed'}
                   whileTap={{ scale: 0.9 }}
                 >
                   {t.completed ? <CheckCircle2 className="h-6 w-6 text-brand-600" /> : <Circle className="h-6 w-6" />}
                 </motion.button>
 
-                {editingId === t.id ? (
+                {editingId === t._id ? (
                   <EditInline
                     initial={t.title}
                     onCancel={() => setEditingId(null)}
                     onSave={(val) => {
-                      updateTodo(t.id, val)
+                      updateTodo(t._id, val)
                       setEditingId(null)
                     }}
                   />
@@ -189,16 +189,16 @@ export default function Page() {
                 )}
 
                 <div className="ms-auto flex items-center gap-1">
-                  <motion.button whileTap={{ scale: 0.95 }} className="btn btn-ghost px-2 py-1" onClick={() => setEditingId(t.id)} aria-label="Edit">
+                  <motion.button whileTap={{ scale: 0.95 }} className="btn btn-ghost px-2 py-1" onClick={() => setEditingId(t._id!)} aria-label="Edit">
                     <Pencil className="h-4 w-4" />
                   </motion.button>
-                  <motion.button whileTap={{ scale: 0.95 }} className="btn btn-ghost px-2 py-1" onClick={() => reorder(t.id, 'up')} title="Move up" aria-label="Move up">
+                  <motion.button whileTap={{ scale: 0.95 }} className="btn btn-ghost px-2 py-1" onClick={() => reorder(t._id, 'up')} title="Move up" aria-label="Move up">
                     <ArrowUp className="h-4 w-4" />
                   </motion.button>
-                  <motion.button whileTap={{ scale: 0.95 }} className="btn btn-ghost px-2 py-1" onClick={() => reorder(t.id, 'down')} title="Move down" aria-label="Move down">
+                  <motion.button whileTap={{ scale: 0.95 }} className="btn btn-ghost px-2 py-1" onClick={() => reorder(t._id, 'down')} title="Move down" aria-label="Move down">
                     <ArrowDown className="h-4 w-4" />
                   </motion.button>
-                  <motion.button whileTap={{ scale: 0.95 }} className="btn btn-ghost px-2 py-1" onClick={() => deleteTodo(t.id)} aria-label="Delete">
+                  <motion.button whileTap={{ scale: 0.95 }} className="btn btn-ghost px-2 py-1" onClick={() => deleteTodo(t._id)} aria-label="Delete">
                     <Trash2 className="h-4 w-4" />
                   </motion.button>
                 </div>
@@ -214,7 +214,7 @@ export default function Page() {
                 <select
                   className="input text-xs max-w-[140px] ms-auto"
                   value={t.priority}
-                  onChange={(e) => setPriority(t.id, e.target.value as any)}
+                  onChange={(e) => setPriority(t._id, e.target.value as any)}
                   aria-label="Set priority"
                 >
                   <option value="low">Low</option>
@@ -225,7 +225,7 @@ export default function Page() {
                   type="date"
                   className="input text-xs max-w-[160px]"
                   value={t.dueDate || ''}
-                  onChange={(e) => setDueDate(t.id, e.target.value || undefined)}
+                  onChange={(e) => setDueDate(t._id, e.target.value || undefined)}
                 />
               </div>
             </motion.li>
